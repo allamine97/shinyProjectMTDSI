@@ -86,11 +86,12 @@ ui <- fluidPage(setBackgroundColor("ghostwhite"),theme = shinytheme("cerulean"),
                                             )
                                        
                                      ),
-                                     column(9,
-                                            
-                                            plotOutput("pc")
-                                            
-                                            )
+                                     column(9, fluidRow(
+                                       column(12,  plotOutput("plot1")),
+                                       column(12,  plotOutput("plot2")),
+                                       column(12,  plotOutput("plot3")),
+                                       column(12,  plotOutput("plot4"))
+                                     ) )
                                      ),
                             tabPanel("Model",icon = icon("list-alt")) 
                             

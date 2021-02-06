@@ -5,6 +5,9 @@ library(pander)
 library(FactoMineR)
 library(rsconnect)
 library("factoextra")
+library("dplyr")
+
+
 function(input, output,session) {
   
   contentsrea <- reactive({
@@ -62,16 +65,78 @@ function(input, output,session) {
     
   })
   
-  observeEvent(input$am,{
-    db <- read.csv(input$datafile$datapath, header = TRUE, sep =input$var)
-    output$pc<-renderPlot({
-      #res.ca <- CA (db, graph = FALSE)
-      #print(res.ca)
-      acp =PCA(db, scale.unit =TRUE,graph=FALSE)
-      plot(acp,choix='ind')
-      #plot(acp,choix='var',habillage = 'cos2')
+  # multivariate analysis: choice in [ACP & AFC & ACM]
+  observeEvent(input$am, {
+    # load data frame
+    data <- read.csv(input$datafile$datapath, header = TRUE, sep =input$var)
+
+    # select only numeric columns
+    data_numeric <- select_if(data, is.numeric)
+    
+    # render plot switch analyse type
+    observeEvent(input$dis, { 
+      if (input$dis == "cpa") {
+        data_acp = PCA(data_numeric, scale.unit = TRUE, graph = FALSE)
+        
+        output$plot1<-renderPlot({
+          plot(data_acp, choix='ind')
+        })
+        
+        output$plot2<-renderPlot({
+          fviz_pca_var(data_acp, col.var="blue")
+        })
+        
+        output$plot3<-renderPlot({
+          fviz_eig(data_acp, addlabels = TRUE, ylim = c(0, 50))
+        })
+        
+        output$plot4<-renderPlot({
+          fviz_cos2(data_acp, choice="var", axis = 1:2)
+        })
+      }
+      if (input$dis == "afc") {
+        data_ca = CA(data_numeric, graph = FALSE)
+        
+        output$plot1<-renderPlot({
+          dt <- as.table(as.matrix(data_ca))
+          plot(t(dt), main = "donnees", xlab = "", ylab = "", label = FALSE, show.margins = FALSE)
+        })
+        
+        output$plot2<-renderPlot({
+          fviz_ca_biplot(data_ca, repel = TRUE)
+        })
+        
+        output$plot3<-renderPlot({
+          fviz_ca_row(data_ca, repel = TRUE)
+        })
+        
+        output$plot4<-renderPlot({
+          fviz_ca_row(data_ca, col.row="cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE)
+        })
+      }
+      if (input$dis == "acm") {
+        data_mca = MCA(data_numeric, graph = FALSE)
+        
+        output$plot1<-renderPlot({
+          fviz_screeplot(data_mca, addlabels = TRUE, ylim = c(0, 45))
+        })
+        
+        output$plot2<-renderPlot({
+          fviz_mca_biplot(data_mca, repel = TRUE, ggtheme = theme_minimal())
+        })
+        
+        output$plot3<-renderPlot({
+          fviz_mca_var(data_mca, choice = "mca.cor", repel = TRUE, ggtheme = theme_minimal())
+        })
+        
+        output$plot4<-renderPlot({
+          fviz_mca_var(data_mca, col.var="cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE, ggtheme = theme_minimal())
+        })
+      }
     })
   })
+
+  
   
   output$table <- renderDataTable({
     file <- input$datafile
